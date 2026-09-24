@@ -1,54 +1,118 @@
-#  Intelligent EV Battery Monitoring System (AI + IoT)
+# Notebook: EV_Battery_SOC_SOH_Prediction.ipynb — Project README
 
-##  Introduction
+This README documents everything performed in the notebook(s) located in this folder. It summarizes the purpose, dataset, preprocessing, model architecture, training and evaluation procedures, the companion Flutter mobile application, and instructions to reproduce the results locally.
 
-Ce projet propose un **système intelligent de surveillance des batteries pour véhicules électriques (EV)** utilisant l’**Intelligence Artificielle (AI)** et l’**Internet of Things (IoT)**. Le système prédit avec précision le **State of Charge (SOC)** et le **State of Health (SOH)** des batteries lithium-ion, optimisant la performance, la durée de vie et l’efficacité énergétique.
+## 1. Project goal
 
-##  Fonctionnement
+Predict lithium-ion battery **State of Charge (SOC)** and **State of Health (SOH)** from a public battery dataset, derive **Remaining Useful Life (RUL)** and driving range estimates from these predictions, and expose the results through a Flutter mobile application (Battery Status and Driving Range & Predictions screens).
 
-1. Les capteurs IoT collectent des données en temps réel : tension, courant, température, cycles de charge/décharge.
-2. Les données sont envoyées à une plateforme cloud pour traitement.
-3. Les modèles AI (DNN, XGBoost, Random Forest, LGBMRegressor) prédisent SOC, SOH et Remaining Useful Life (RUL).
-4. Le système fournit des diagnostics précis et des recommandations via une application mobile.
+## 2. Environment & main dependencies
 
-##  Interface Utilisateur
+- Python (3.8+ recommended)
+- PyTorch
+- XGBoost, LightGBM, scikit-learn
+- pandas, numpy
+- matplotlib, seaborn
+- Flutter SDK (for the mobile application)
+- Firebase (backend for the mobile application)
 
-Le système propose deux écrans principaux :
+Minimal pip requirements (as used in the notebook):
 
-1. **Battery Status** : Affiche SOC, SOH, durée de charge, cycles de charge, température, tension, courant, etc.
-2. **Driving Range & Predictions** : Montre la distance restante, le temps estimé pour atteindre la destination, RUL, et prévisions SOC/SOH pour l’heure suivante.
+\`\`\`bash
+pip install torch xgboost lightgbm scikit-learn pandas numpy matplotlib seaborn
+\`\`\`
 
-Ces écrans offrent une interface intuitive qui améliore l’expérience de conduite et permet une gestion efficace de l’énergie.
+## 3. Dataset
 
-##  Technologies utilisées
+The notebook uses a public lithium-ion battery dataset containing voltage, current, temperature, and charge/discharge cycle measurements used to derive SOC and SOH labels.
 
-* **AI / ML** : DNN, XGBoost, Random Forest, LGBMRegressor
-* **IoT** : Capteurs temps réel, collecte de données
-* **Python** : Pandas, NumPy, PyTorch
-* **Data Processing** : EDA, KDE, SMOTE, Noise Injection
-* **Frontend / Cloud** : Application mobile, stockage cloud
+Update the dataset path in the notebook's data-loading cell to match your local directory structure before running.
 
-##  Fonctionnalités clés
+## 4. High-level steps done in the notebook
 
-* Prédiction précise de SOC et SOH
-* Estimation de RUL
-* Surveillance en temps réel des batteries EV
-* Optimisation de l’efficacité énergétique et prolongation de la durée de vie
-* Visualisation des données et alertes via application mobile
+- Setup and imports (PyTorch, XGBoost, LightGBM, pandas, etc.).
+- Exploratory data analysis (EDA) on voltage, current, temperature, and cycle features.
+- Identification of strongly under-represented target ranges in the SOC/SOH distributions (imbalanced regression).
+- Data augmentation for continuous targets: kernel density estimation (KDE), SMOTE-derived oversampling adapted to regression, and Gaussian noise injection, with synthetic samples clipped to physically realistic values.
+- Feature engineering from raw sensor measurements.
+- Train/validation/test split.
+- Training and comparison of multiple models: a deep neural network (DNN), XGBoost, Random Forest, and LightGBM regressors.
+- Derivation of Remaining Useful Life (RUL) and driving range from SOC/SOH predictions.
+- Evaluation using standard regression metrics.
+- Visualization of predictions against ground truth and training curves.
+- Export of the trained model(s) for use by the mobile application backend.
 
-##  Installation & Exécution
+## 5. Important functions & components (what the notebook implements)
 
-1. Installer les dépendances Python
+- **Preprocessing utilities**: functions to clean raw sensor readings, engineer features (e.g., rolling statistics on voltage/current/temperature), and normalize inputs.
+- **`kde_oversample(...)`**: estimates the density of the continuous target distribution and generates synthetic samples in under-represented ranges.
+- **`smote_regression(...)`**: SMOTE-derived interpolation adapted to continuous SOC/SOH targets, followed by physical-plausibility clipping.
+- **`add_gaussian_noise(...)`**: injects controlled Gaussian noise for additional augmentation.
+- **Model definitions**: a feed-forward DNN (PyTorch) alongside XGBoost, Random Forest, and LightGBM regressors, trained and compared under the same train/test split.
+- **`estimate_rul(...)`**: derives Remaining Useful Life from SOH predictions.
+- **`estimate_driving_range(...)`**: derives estimated driving range from SOC predictions.
 
+Compilation / training setup (DNN):
 
-2. Lancer les scripts AI pour prédiction
+- Loss: mean squared error (MSE)
+- Optimizer: Adam
+- Metrics: RMSE, MAE, R²
 
-```bash
-python train_model.py
-python predict_soc_soh.py
-```
+## 6. Data augmentation parameters used
 
-3. Accéder à l’application mobile pour visualisation en temps réel.
+- KDE bandwidth: tuned per target distribution
+- Oversampling ratio: applied to under-represented target ranges only
+- Gaussian noise: small standard deviation relative to feature scale, applied only to synthetic samples
+- Clipping: synthetic samples clipped to physically realistic SOC/SOH bounds (0–100%) to avoid implausible battery states
 
+## 7. Training setup and hyperparameters
 
+- Train/validation/test split: standard split with fixed random seed for reproducibility
+- Batch size and epochs (DNN): set in the notebook's configuration cell
+- Early stopping: monitored on validation loss to avoid overfitting
+- Cross-model comparison: DNN, XGBoost, Random Forest, and LightGBM evaluated under identical splits and preprocessing
 
+## 8. Evaluation
+
+Two complementary evaluations are performed:
+
+- **Standard regression metrics**: RMSE, MAE, and R² computed for SOC and SOH predictions on the test set, for each of the four models.
+- **RUL and driving range validation**: predictions derived from SOC/SOH outputs are compared against expected degradation trends to sanity-check downstream estimates.
+
+## 9. Visualizations
+
+- Predicted vs. actual SOC/SOH scatter plots and error distributions.
+- Training curves (loss, RMSE) across epochs for the DNN.
+- Comparison bar charts of RMSE/MAE/R² across the four models.
+- Effect of KDE/SMOTE-derived augmentation shown via before/after distribution plots of the target variable.
+
+## 10. Model saving
+
+The best-performing model(s) are saved for use by the mobile application backend (e.g., as `.pkl` for tree-based models or a serialized PyTorch checkpoint for the DNN). Adjust the save path to a writable directory when running locally.
+
+## 11. Mobile application (Flutter)
+
+The `mobile_app/` folder contains the Flutter source code for the companion application, which consumes the trained model's predictions and displays:
+
+- **Battery Status** screen: SOC, SOH, charge duration, charge cycles, temperature, voltage, current.
+- **Driving Range & Predictions** screen: remaining driving range, estimated time to destination, RUL, and SOC/SOH forecasts for the next hour.
+
+The application uses Firebase for data storage and synchronization.
+
+## 12. Reproduce locally (recommended steps)
+
+1. Create a Python environment and install dependencies (see section 2).
+2. Download the public battery dataset and update the dataset path in the notebook.
+3. Open the notebook in Jupyter / VS Code / Colab and run cells in order.
+4. To run the mobile application:
+
+\`\`\`bash
+cd mobile_app
+flutter pub get
+flutter run
+\`\`\`
+
+## 13. Contract / expected inputs & outputs (short)
+
+- **Inputs**: tabular battery measurements (voltage, current, temperature, charge/discharge cycle count) from the public dataset.
+- **Outputs**: trained regression models (DNN, XGBoost, Random Forest, LightGBM), SOC/SOH/RUL predictions, evaluation metrics, and visualizations; the Flutter application consuming these outputs for real-time-style display.
