@@ -1,4 +1,4 @@
-# Notebook: EV_Battery_SOC_SOH_Prediction.ipynb — Project README
+# Notebook: EV_Battery — Project README
 
 This README documents everything performed in the notebook(s) located in this folder. It summarizes the purpose, dataset, preprocessing, model architecture, training and evaluation procedures, the companion Flutter mobile application, and instructions to reproduce the results locally.
 
