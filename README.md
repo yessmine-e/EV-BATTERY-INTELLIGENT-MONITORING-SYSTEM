@@ -8,7 +8,7 @@ Predict lithium-ion battery **State of Charge (SOC)** and **State of Health (SOH
 
 ## 2. Environment & main dependencies
 
-- Python (3.8+ recommended)
+- Python (3.7+ recommended)
 - PyTorch
 - XGBoost, LightGBM, scikit-learn
 - pandas, numpy
